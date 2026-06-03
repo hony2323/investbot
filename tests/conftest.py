@@ -21,7 +21,7 @@ def sample_portfolio_dict() -> dict:
         "account_id": "DU0000001",
         "as_of": "2026-06-03T00:00:00",
         "base_currency": "USD",
-        "cash": 4000.0,  # ~4% -> below 5% min cash, triggers a warn
+        "cash": 3000.0,  # ~3.8% -> below 5% min cash, triggers a warn
         "positions": [
             {"ticker": "MSFT", "name": "Microsoft", "quantity": 100, "avg_cost": 200,
              "market_price": 400, "sector": "Technology"},
