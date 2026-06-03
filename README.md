@@ -80,11 +80,17 @@ If those work, you're set. `analyze` and `stock` (without `--dry-run`) additiona
 
 Live mode needs **TWS** or **IB Gateway** running with the API enabled:
 TWS → *Settings → API → Settings* → enable **ActiveX and Socket Clients**, and confirm the
-socket port (`7497` for paper, `7496` for live) matches `config.yaml` / `IB_PORT`. Then:
+socket port (`7497` for paper, `7496` for live) matches `config.yaml` / `IB_PORT`. Then
+verify the link before pulling holdings:
 
 ```bash
-investbot portfolio --source live
+investbot connect                  # prompts for host/port/client id, then probes (read-only)
+investbot connect --no-input       # skip prompts; use configured values
+investbot portfolio --source live  # once connect succeeds
 ```
+
+`connect` only reads (`managedAccounts` / `positions`) and disconnects; on failure it prints
+a checklist of the usual causes (API disabled, wrong port, untrusted IP, client-id clash).
 
 Everything except live reads works offline with `--source mock`.
 
@@ -96,6 +102,7 @@ Everything except live reads works offline with `--source mock`.
 ## Usage
 
 ```bash
+investbot connect                        # interactively test the TWS/Gateway connection
 investbot portfolio --source mock        # render the sample portfolio + risk report
 investbot portfolio --source live        # read your real IBKR account
 investbot analyze --source mock          # full memo (needs ANTHROPIC_API_KEY)

@@ -139,6 +139,68 @@ def test_analyze_full_path_with_fake_claude(project, monkeypatch):
     assert row["action"] in {"BUY", "HOLD", "WATCH", "TRIM", "SELL"}
 
 
+def test_connect_success(project, monkeypatch):
+    from investbot.brokers.ibkr import ConnectionInfo
+
+    def _fake_probe(config):
+        return ConnectionInfo(
+            host=config.ibkr.host,
+            port=config.ibkr.port,
+            client_id=config.ibkr.client_id,
+            connected=True,
+            server_version=176,
+            accounts=["DU0000001"],
+            num_positions=3,
+        )
+
+    monkeypatch.setattr(cli, "probe_connection", _fake_probe)
+    result = runner.invoke(
+        cli.app, ["connect", "--config", project["config"], "--no-input"]
+    )
+    assert result.exit_code == 0, result.stdout
+    assert "Connected" in result.stdout
+    assert "DU0000001" in result.stdout
+
+
+def test_connect_failure_gives_guidance(project, monkeypatch):
+    from investbot.brokers.ibkr import BrokerError
+
+    def _boom(config):
+        raise BrokerError("Could not connect to IBKR at 127.0.0.1:7497")
+
+    monkeypatch.setattr(cli, "probe_connection", _boom)
+    result = runner.invoke(
+        cli.app, ["connect", "--config", project["config"], "--no-input"]
+    )
+    assert result.exit_code == 1
+    assert "Connection failed" in result.stdout
+    assert "Checklist" in result.stdout
+
+
+def test_connect_flag_overrides(project, monkeypatch):
+    captured = {}
+
+    def _fake_probe(config):
+        from investbot.brokers.ibkr import ConnectionInfo
+
+        captured["host"] = config.ibkr.host
+        captured["port"] = config.ibkr.port
+        captured["client_id"] = config.ibkr.client_id
+        return ConnectionInfo(
+            host=config.ibkr.host, port=config.ibkr.port,
+            client_id=config.ibkr.client_id, connected=True,
+        )
+
+    monkeypatch.setattr(cli, "probe_connection", _fake_probe)
+    result = runner.invoke(
+        cli.app,
+        ["connect", "--config", project["config"], "--no-input",
+         "--host", "10.0.0.5", "--port", "4002", "--client-id", "9"],
+    )
+    assert result.exit_code == 0, result.stdout
+    assert captured == {"host": "10.0.0.5", "port": 4002, "client_id": 9}
+
+
 def test_stock_command_with_fake_claude(project, monkeypatch):
     monkeypatch.setattr(cli, "get_anthropic_api_key", lambda: "test-key")
     # Avoid network: stub fundamentals.

@@ -14,6 +14,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from pydantic import BaseModel
+
 from investbot.config.loader import fixture_path
 from investbot.models.portfolio import Portfolio, Position
 from investbot.models.recommendation import AppConfig
@@ -21,6 +23,18 @@ from investbot.models.recommendation import AppConfig
 
 class BrokerError(Exception):
     """Raised when portfolio data cannot be obtained."""
+
+
+class ConnectionInfo(BaseModel):
+    """Result of a lightweight, read-only IBKR connection probe."""
+
+    host: str
+    port: int
+    client_id: int
+    connected: bool = False
+    server_version: int | None = None
+    accounts: list[str] = []
+    num_positions: int = 0
 
 
 def get_portfolio(source: str, config: AppConfig) -> Portfolio:
@@ -61,6 +75,42 @@ def load_live_portfolio(config: AppConfig) -> Portfolio:
             base_currency="USD",
             cash=cash,
             positions=[p for p in positions if p is not None],
+        )
+    finally:
+        try:
+            ib.disconnect()
+        except Exception:  # pragma: no cover - best-effort cleanup
+            pass
+
+
+def probe_connection(config: AppConfig) -> ConnectionInfo:
+    """Connect read-only and report basic account info, then disconnect.
+
+    Used by the interactive `connect` command to verify TWS/Gateway reachability
+    without pulling the full portfolio. Reads only; never places orders.
+    """
+    ibc = config.ibkr
+    ib = _connect(config)
+    try:
+        accounts = [a for a in (ib.managedAccounts() or []) if a]
+        server_version = None
+        try:
+            server_version = ib.client.serverVersion()
+        except Exception:  # pragma: no cover - version call is best-effort
+            pass
+        num_positions = 0
+        try:
+            num_positions = len(ib.positions() or [])
+        except Exception:  # pragma: no cover - positions sub may be unavailable
+            num_positions = 0
+        return ConnectionInfo(
+            host=ibc.host,
+            port=ibc.port,
+            client_id=ibc.client_id,
+            connected=True,
+            server_version=server_version,
+            accounts=accounts,
+            num_positions=num_positions,
         )
     finally:
         try:

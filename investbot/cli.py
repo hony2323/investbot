@@ -18,7 +18,7 @@ from investbot.analysis import portfolio as port
 from investbot.analysis.claude import ClaudeClient, ClaudeError
 from investbot.analysis.risk import build_risk_report
 from investbot.analysis.stock import analyze_stock
-from investbot.brokers.ibkr import BrokerError, get_portfolio
+from investbot.brokers.ibkr import BrokerError, get_portfolio, probe_connection
 from investbot.config.loader import (
     ConfigError,
     get_anthropic_api_key,
@@ -202,6 +202,67 @@ def portfolio(
     _render_portfolio(pf, risk)
     snap = port.write_snapshot(pf, config)
     console.print(f"[dim]Snapshot saved → {snap}[/]")
+
+
+@app.command()
+def connect(
+    config_path: Optional[str] = typer.Option(None, "--config", help="Path to config.yaml."),
+    host: Optional[str] = typer.Option(None, help="Override IBKR host."),
+    port: Optional[int] = typer.Option(None, help="Override IBKR port."),
+    client_id: Optional[int] = typer.Option(None, help="Override IBKR client id."),
+    no_input: bool = typer.Option(
+        False, "--no-input", help="Skip prompts; use configured/flag values."
+    ),
+) -> None:
+    """Interactively test the connection to TWS / IB Gateway (read-only)."""
+    try:
+        config = load_config(config_path)
+    except ConfigError as exc:
+        _fail(str(exc))
+
+    ibc = config.ibkr
+    h = host or ibc.host
+    p = port if port is not None else ibc.port
+    cid = client_id if client_id is not None else ibc.client_id
+
+    if not no_input:
+        console.print(
+            "[dim]Make sure TWS or IB Gateway is running and the API is enabled "
+            "(Settings → API → Enable ActiveX and Socket Clients).[/]"
+        )
+        h = typer.prompt("IBKR host", default=h)
+        p = int(typer.prompt("IBKR port", default=str(p)))
+        cid = int(typer.prompt("Client id", default=str(cid)))
+
+    config.ibkr.host, config.ibkr.port, config.ibkr.client_id = h, p, cid
+    console.print(
+        Panel(f"Connecting to [bold]{h}:{p}[/] (client id {cid})…", border_style="cyan", expand=False)
+    )
+
+    try:
+        with console.status("[bold]Contacting IBKR…[/]"):
+            info = probe_connection(config)
+    except BrokerError as exc:
+        console.print(f"[bold red]Connection failed:[/] {exc}")
+        console.print(
+            "\n[bold]Checklist:[/]\n"
+            "  • Is TWS or IB Gateway running and logged in?\n"
+            "  • API enabled? Settings → API → 'Enable ActiveX and Socket Clients'.\n"
+            f"  • Does the socket port match? (you tried {p}; paper=7497, live=7496)\n"
+            "  • Is 127.0.0.1 in API → 'Trusted IPs' (or accept the TWS prompt)?\n"
+            "  • Is another client using the same client id? Try a different one."
+        )
+        raise typer.Exit(code=1)
+
+    lines = [
+        "[green]✓ Connected[/]",
+        f"Host: {info.host}:{info.port} (client id {info.client_id})",
+        f"Server version: {info.server_version or 'n/a'}",
+        f"Accounts: {', '.join(info.accounts) or 'none reported'}",
+        f"Open positions: {info.num_positions}",
+    ]
+    console.print(Panel("\n".join(lines), title="IBKR connection", border_style="green", expand=False))
+    console.print("[dim]Read-only check complete. Run `investbot portfolio --source live` to view holdings.[/]")
 
 
 @app.command()
