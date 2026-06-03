@@ -1,35 +1,18 @@
-[build-system]
-requires = ["setuptools>=68"]
-build-backend = "setuptools.build_meta"
+# Workspace root for the investbot monorepo.
+# This file declares no package of its own — it only ties the members together
+# so `uv sync` installs the core library and the API app from one place.
+#
+# Layout:
+#   packages/core  -> the `investbot` library + CLI
+#   apps/api       -> FastAPI service that wraps the library
+#   apps/web       -> React/Vite frontend (its own npm project, not a uv member)
 
-[project]
-name = "investbot"
-version = "0.1.0"
-description = "Read-only, advisory CLI investing assistant for Interactive Brokers portfolios."
-readme = "README.md"
-requires-python = ">=3.10"
-dependencies = [
-    "typer>=0.12",
-    "rich>=13.7",
-    "pydantic>=2.6",
-    "pyyaml>=6.0",
-    "ib_insync>=0.9.86",
-    "anthropic>=0.40",
-    "yfinance>=0.2.40",
-    "requests>=2.31",
-    "python-dotenv>=1.0",
-]
+[tool.uv.workspace]
+members = ["packages/*", "apps/api"]
 
-[project.optional-dependencies]
-dev = [
-    "pytest>=8.0",
-]
+[tool.uv.sources]
+investbot = { workspace = true }
 
-[project.scripts]
-investbot = "investbot.cli:app"
-
-[tool.setuptools.packages.find]
-include = ["investbot*"]
-
-[tool.pytest.ini_options]
-testpaths = ["tests"]
+# Installed by `uv sync` by default — keeps the dev env test-ready.
+[dependency-groups]
+dev = ["pytest>=8.0"]

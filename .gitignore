@@ -1,10 +1,11 @@
 # Secrets
 .env
+.env.local
 
-# Generated data (keep fixtures, ignore live output)
-data/snapshots/
-data/memos/
-data/recommendations.jsonl
+# Generated data (keep fixtures, ignore live output) — now under packages/core/
+**/data/snapshots/
+**/data/memos/
+**/data/recommendations.jsonl
 
 # Python
 __pycache__/
@@ -15,3 +16,9 @@ __pycache__/
 venv/
 build/
 dist/
+
+# Node / web
+node_modules/
+apps/web/dist/
+.vite/
+*.local
