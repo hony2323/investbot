@@ -145,7 +145,17 @@ def _connect(config: AppConfig):
     ib = IB()
     ibc = config.ibkr
     try:
-        ib.connect(ibc.host, ibc.port, clientId=ibc.client_id, timeout=ibc.timeout_seconds)
+        # readonly=True keeps ib_insync from issuing order-bind requests during the
+        # connect handshake — those are rejected when TWS's "Read-Only API" is on and
+        # would otherwise log Error 321 / time out. It also matches investbot's
+        # no-trades guarantee.
+        ib.connect(
+            ibc.host,
+            ibc.port,
+            clientId=ibc.client_id,
+            timeout=ibc.timeout_seconds,
+            readonly=True,
+        )
     except Exception as exc:
         raise BrokerError(
             f"Could not connect to IBKR at {ibc.host}:{ibc.port} (clientId={ibc.client_id}). "

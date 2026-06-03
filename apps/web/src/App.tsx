@@ -1,5 +1,15 @@
 import { useEffect, useState } from "react";
-import { getPortfolio, type PortfolioResponse, type Violation } from "./api";
+import {
+  analyze,
+  getPortfolio,
+  type MemoResult,
+  type PortfolioResponse,
+  type Recommendation,
+  type Violation,
+} from "./api";
+
+// The dashboard reads live data; analysis runs against the same source.
+const SOURCE = "live";
 
 type Theme = "light" | "dark";
 
@@ -42,7 +52,7 @@ export default function App() {
   const [theme, toggleTheme] = useTheme();
 
   useEffect(() => {
-    getPortfolio("mock")
+    getPortfolio(SOURCE)
       .then(setData)
       .catch((e: Error) => setError(e.message));
   }, []);
@@ -63,6 +73,8 @@ export default function App() {
       )}
 
       {data && <Ledger data={data} />}
+
+      {data && <Analysis />}
 
       <Colophon account={data?.summary.account_id ?? null} />
     </div>
@@ -202,6 +214,136 @@ function Ledger({ data }: { data: PortfolioResponse }) {
         </section>
       </div>
     </>
+  );
+}
+
+const ACTION_COLOR: Record<string, string> = {
+  BUY: "#1a7f37",
+  HOLD: "#0969da",
+  WATCH: "#9a6700",
+  TRIM: "#8250df",
+  SELL: "#cf222e",
+};
+
+function Analysis() {
+  const [memo, setMemo] = useState<MemoResult | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  const run = () => {
+    setBusy(true);
+    setErr(null);
+    analyze(SOURCE, false)
+      .then(setMemo)
+      .catch((e: Error) => setErr(e.message))
+      .finally(() => setBusy(false));
+  };
+
+  return (
+    <section className="s-1" style={{ marginTop: "1.5rem" }}>
+      <div className="section-head">
+        <h2>Analyst's Desk</h2>
+        <button
+          onClick={run}
+          disabled={busy}
+          style={{
+            font: "inherit",
+            padding: "0.35rem 0.9rem",
+            cursor: busy ? "wait" : "pointer",
+            border: "1px solid currentColor",
+            background: "transparent",
+            borderRadius: 2,
+          }}
+        >
+          {busy ? "Consulting Claude…" : memo ? "Re-run analysis" : "Run analysis"}
+        </button>
+      </div>
+
+      {err && <p className="state err">The analyst is unavailable — {err}</p>}
+      {!memo && !err && !busy && (
+        <p className="cell-name" style={{ padding: "0.5rem 0" }}>
+          Press “Run analysis” for Claude’s per-holding recommendations, each weighed against
+          doing nothing or buying a broad ETF. This calls the model and may take ~30–60s.
+        </p>
+      )}
+
+      {memo && (
+        <>
+          <div style={{ display: "grid", gap: "0.75rem", margin: "0.5rem 0 1.25rem" }}>
+            {memo.recommendations.map((r) => (
+              <RecCard key={r.ticker} r={r} />
+            ))}
+            {memo.invalid_tickers.length > 0 && (
+              <p className="cell-sector">
+                Skipped (invalid model output): {memo.invalid_tickers.join(", ")}
+              </p>
+            )}
+          </div>
+
+          <div className="section-head">
+            <h2>The Memo</h2>
+            <span className="count">{memo.model}</span>
+          </div>
+          <div
+            style={{
+              whiteSpace: "pre-wrap",
+              lineHeight: 1.5,
+              padding: "0.5rem 0",
+              borderTop: "1px solid color-mix(in srgb, currentColor 20%, transparent)",
+            }}
+          >
+            {memo.memo_markdown}
+          </div>
+        </>
+      )}
+    </section>
+  );
+}
+
+function RecCard({ r }: { r: Recommendation }) {
+  const color = ACTION_COLOR[r.action] ?? "currentColor";
+  return (
+    <article
+      style={{
+        border: "1px solid color-mix(in srgb, currentColor 22%, transparent)",
+        borderLeft: `4px solid ${color}`,
+        padding: "0.75rem 1rem",
+        borderRadius: 2,
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "baseline", gap: "0.6rem", flexWrap: "wrap" }}>
+        <span style={{ fontWeight: 700, fontSize: "1.15rem" }}>{r.ticker}</span>
+        <span
+          style={{
+            color,
+            fontWeight: 700,
+            letterSpacing: "0.05em",
+            border: `1px solid ${color}`,
+            borderRadius: 2,
+            padding: "0 0.4rem",
+            fontSize: "0.8rem",
+          }}
+        >
+          {r.action}
+        </span>
+        <span className="cell-sector">conf {(r.confidence * 100).toFixed(0)}%</span>
+        <span className="cell-sector">· {r.time_horizon}</span>
+        <span className="cell-sector">· size {r.suggested_position_size}</span>
+      </div>
+      <p style={{ margin: "0.5rem 0" }}>{r.reason}</p>
+      {r.risks.length > 0 && (
+        <ul style={{ margin: "0.25rem 0", paddingLeft: "1.1rem" }}>
+          {r.risks.map((risk, i) => (
+            <li key={i} className="cell-name" style={{ listStyle: "disc" }}>
+              {risk}
+            </li>
+          ))}
+        </ul>
+      )}
+      <p className="cell-sector" style={{ marginTop: "0.4rem" }}>
+        <strong>What would change my mind:</strong> {r.what_would_change_my_mind}
+      </p>
+    </article>
   );
 }
 

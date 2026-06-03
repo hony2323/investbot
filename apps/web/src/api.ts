@@ -49,6 +49,30 @@ export interface PortfolioResponse {
   risk: RiskReport;
 }
 
+export type Action = "BUY" | "HOLD" | "WATCH" | "TRIM" | "SELL";
+
+export interface Recommendation {
+  action: Action;
+  ticker: string;
+  confidence: number;
+  time_horizon: string;
+  reason: string;
+  risks: string[];
+  what_would_change_my_mind: string;
+  suggested_position_size: string;
+}
+
+export interface MemoResult {
+  as_of: string;
+  model: string;
+  account_id: string | null;
+  benchmark_etf: string;
+  recommendations: Recommendation[];
+  invalid_tickers: string[];
+  memo_markdown: string;
+  risk_report: RiskReport;
+}
+
 async function getJSON<T>(url: string): Promise<T> {
   const res = await fetch(url);
   if (!res.ok) {
@@ -65,4 +89,26 @@ async function getJSON<T>(url: string): Promise<T> {
 
 export function getPortfolio(source = "mock"): Promise<PortfolioResponse> {
   return getJSON<PortfolioResponse>(`/api/portfolio?source=${encodeURIComponent(source)}`);
+}
+
+async function postJSON<T>(url: string, body: unknown): Promise<T> {
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    let detail = res.statusText;
+    try {
+      detail = (await res.json()).detail ?? detail;
+    } catch {
+      /* non-JSON error body */
+    }
+    throw new Error(`${res.status}: ${detail}`);
+  }
+  return res.json() as Promise<T>;
+}
+
+export function analyze(source = "mock", dryRun = false): Promise<MemoResult> {
+  return postJSON<MemoResult>("/api/analyze", { source, dry_run: dryRun });
 }
