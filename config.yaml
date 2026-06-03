@@ -1,0 +1,30 @@
+# investbot application configuration.
+# Secrets (API keys, IB credentials) live in .env, NOT here.
+
+claude:
+  # Default model for memos and recommendations.
+  model: claude-opus-4-8
+  max_tokens: 2048
+  # Model used for the narrative memo synthesis (can differ from rec model).
+  memo_max_tokens: 3072
+
+ibkr:
+  # Connection defaults can be overridden by IB_HOST / IB_PORT / IB_CLIENT_ID in .env.
+  host: 127.0.0.1
+  port: 7497
+  client_id: 17
+  timeout_seconds: 15
+
+data:
+  # Default data source when --source is not passed: "live" or "mock".
+  default_source: mock
+  snapshots_dir: data/snapshots
+  memos_dir: data/memos
+  fixtures_dir: data/fixtures
+  recommendations_file: data/recommendations.jsonl
+
+analysis:
+  # Cap on holdings sent to Claude in a single `analyze` run (cost guard).
+  max_positions: 30
+  # Broad-market ETF used as the "do nothing / buy the index" baseline.
+  benchmark_etf: VOO

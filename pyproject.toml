@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "investbot"
+version = "0.1.0"
+description = "Read-only, advisory CLI investing assistant for Interactive Brokers portfolios."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "typer>=0.12",
+    "rich>=13.7",
+    "pydantic>=2.6",
+    "pyyaml>=6.0",
+    "ib_insync>=0.9.86",
+    "anthropic>=0.40",
+    "yfinance>=0.2.40",
+    "requests>=2.31",
+    "python-dotenv>=1.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+]
+
+[project.scripts]
+investbot = "investbot.cli:app"
+
+[tool.setuptools.packages.find]
+include = ["investbot*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

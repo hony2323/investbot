@@ -1,0 +1,53 @@
+{
+  "account_id": "DU1234567",
+  "as_of": "2026-06-03T00:00:00",
+  "base_currency": "USD",
+  "cash": 12000.0,
+  "positions": [
+    {
+      "ticker": "MSFT",
+      "name": "Microsoft Corp",
+      "quantity": 120,
+      "avg_cost": 280.0,
+      "market_price": 430.0,
+      "sector": "Technology",
+      "asset_class": "STK"
+    },
+    {
+      "ticker": "CRWD",
+      "name": "CrowdStrike Holdings",
+      "quantity": 90,
+      "avg_cost": 210.0,
+      "market_price": 350.0,
+      "sector": "Technology",
+      "asset_class": "STK"
+    },
+    {
+      "ticker": "GOOGL",
+      "name": "Alphabet Inc Class A",
+      "quantity": 100,
+      "avg_cost": 120.0,
+      "market_price": 175.0,
+      "sector": "Communication Services",
+      "asset_class": "STK"
+    },
+    {
+      "ticker": "NEE",
+      "name": "NextEra Energy",
+      "quantity": 150,
+      "avg_cost": 70.0,
+      "market_price": 78.0,
+      "sector": "Utilities",
+      "asset_class": "STK"
+    },
+    {
+      "ticker": "PANW",
+      "name": "Palo Alto Networks",
+      "quantity": 60,
+      "avg_cost": 250.0,
+      "market_price": 310.0,
+      "sector": "Technology",
+      "asset_class": "STK"
+    }
+  ]
+}

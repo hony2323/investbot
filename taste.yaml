@@ -1,0 +1,23 @@
+# Personal investing taste & risk profile.
+# Edit with `investbot edit-taste` (re-validated on save).
+
+risk:
+  max_single_position_pct: 15
+  max_sector_pct: 45
+  min_cash_pct: 5
+  allow_options: false
+  allow_margin: false
+
+preferences:
+  likes:
+    - profitable software companies
+    - cyber/security companies
+    - infrastructure companies
+    - long-term compounders
+    - companies with strong moats
+  avoids:
+    - meme stocks
+    - binary biotech bets
+    - highly leveraged companies
+    - hype without revenue
+    - short-term trades
